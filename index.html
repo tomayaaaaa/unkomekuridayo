@@ -20,27 +20,23 @@
     .input-area {
       display: flex;
       gap: 8px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
     }
 
     input, select, button {
-      padding: 10px;
+      padding: 8px;
       font-size: 16px;
-    }
-
-    button {
-      cursor: pointer;
     }
 
     .players {
       display: grid;
-      gap: 12px;
-      margin-bottom: 24px;
+      gap: 8px;
+      margin-bottom: 16px;
     }
 
     .player {
       background: #fff;
-      padding: 12px;
+      padding: 8px;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       display: flex;
@@ -54,13 +50,14 @@
 
     .score-area {
       text-align: right;
-      min-width: 90px;
+      min-width: 80px;
+      line-height: 1.1;
     }
 
     .delta {
       font-size: 12px;
       color: #999;
-      height: 14px;
+      height: 12px;
     }
 
     .score {
@@ -70,24 +67,24 @@
 
     .form-area {
       background: #fff;
-      padding: 16px;
+      padding: 12px;
       border-radius: 8px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       display: grid;
-      gap: 12px;
+      gap: 8px;
     }
 
     .form-row {
       display: grid;
-      grid-template-columns: 100px 1fr;
+      grid-template-columns: 90px 1fr;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     .checkbox-group {
       display: grid;
-      gap: 6px;
-      margin-left: 100px;
+      gap: 4px;
+      margin-left: 90px;
     }
 
     @media (min-width: 600px) {
@@ -154,19 +151,13 @@
 
   function createPlayers() {
     const count = parseInt(document.getElementById("playerCount").value, 10);
-    if (isNaN(count) || count <= 0) {
-      alert("正しい人数を入力してください");
-      return;
-    }
+    if (isNaN(count) || count <= 0) return alert("正しい人数を入力してください");
 
-    players = [];
-    for (let i = 0; i < count; i++) {
-      players.push({
-        name: `プレイヤー ${i + 1}`,
-        score: 0,
-        delta: null
-      });
-    }
+    players = Array.from({ length: count }, (_, i) => ({
+      name: `プレイヤー ${i + 1}`,
+      score: 0,
+      delta: null
+    }));
 
     renderPlayers();
     updateSelects();
@@ -177,86 +168,64 @@
     div.innerHTML = "";
 
     players.forEach((p, i) => {
-      const el = document.createElement("div");
-      el.className = "player";
-      el.innerHTML = `
-        <input value="${p.name}" onchange="changeName(${i}, this.value)">
-        <div class="score-area">
-          <div class="delta">${p.delta ?? ""}</div>
-          <div class="score">${p.score}</div>
+      div.insertAdjacentHTML("beforeend", `
+        <div class="player">
+          <input value="${p.name}" onchange="changeName(${i}, this.value)">
+          <div class="score-area">
+            <div class="delta">${p.delta ?? ""}</div>
+            <div class="score">${p.score}</div>
+          </div>
         </div>
-      `;
-      div.appendChild(el);
+      `);
     });
   }
 
-  function changeName(index, value) {
-    players[index].name = value || `プレイヤー ${index + 1}`;
+  function changeName(i, v) {
+    players[i].name = v || `プレイヤー ${i + 1}`;
     updateSelects();
   }
 
   function updateSelects() {
-    const winner = document.getElementById("winnerSelect");
-    const loser = document.getElementById("loserSelect");
-    winner.innerHTML = "";
-    loser.innerHTML = "";
-
-    players.forEach((p, i) => {
-      winner.add(new Option(p.name, i));
-      loser.add(new Option(p.name, i));
+    ["winnerSelect", "loserSelect"].forEach(id => {
+      const sel = document.getElementById(id);
+      sel.innerHTML = "";
+      players.forEach((p, i) => sel.add(new Option(p.name, i)));
     });
   }
 
   function clearScores() {
-    players.forEach(p => {
-      p.score = 0;
-      p.delta = null;
-    });
+    players.forEach(p => { p.score = 0; p.delta = null; });
     renderPlayers();
   }
 
   function applyScore() {
     history = JSON.parse(JSON.stringify(players));
 
-    const w = Number(document.getElementById("winnerSelect").value);
-    const l = Number(document.getElementById("loserSelect").value);
-    if (w === l) {
-      alert("勝者と敗者は別にしてください");
-      return;
-    }
+    const w = +document.getElementById("winnerSelect").value;
+    const l = +document.getElementById("loserSelect").value;
+    if (w === l) return alert("勝者と敗者は別にしてください");
 
-    const m = Number(document.getElementById("multiplier").value);
-    const normal = Number(document.getElementById("normalCount").value);
-    const face = Number(document.getElementById("faceCount").value);
+    const m = +document.getElementById("multiplier").value;
+    const normal = +document.getElementById("normalCount").value;
+    const face = +document.getElementById("faceCount").value;
     const revolution = document.getElementById("revolution").checked;
     const wild = document.getElementById("wild").checked;
 
-    let point = 0;
-    point += normal * m * 100;
-    point += face * 2 * m * 100;
+    let point = normal * m * 100 + face * 2 * m * 100;
     if (revolution) point += 5 * m * 100;
     if (wild) point += 3 * m * 100;
 
     players.forEach(p => p.delta = null);
-
-    players[w].score += point;
-    players[w].delta = `+${point}`;
-
-    players[l].score -= point;
-    players[l].delta = `-${point}`;
+    players[w].score += point; players[w].delta = `+${point}`;
+    players[l].score -= point; players[l].delta = `-${point}`;
 
     renderPlayers();
   }
 
   function undo() {
-    if (!history) {
-      alert("取り消せる操作がありません");
-      return;
-    }
-    players = history;
-    history = null;
-    renderPlayers();
-    updateSelects();
+    if (!history) return alert("取り消せる操作がありません");
+    players = history; history = null;
+    renderPlayers(); updateSelects();
   }
 </script>
 
