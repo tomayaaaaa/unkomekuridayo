@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>プレイヤー管理</title>
+  <title>Flip-Flop Poop</title>
   <style>
     body {
       font-family: sans-serif;
@@ -56,8 +56,16 @@
 
     .delta {
       font-size: 12px;
-      color: #999;
       height: 12px;
+      color: #999;
+    }
+
+    .delta.plus {
+      color: #2563eb;
+    }
+
+    .delta.minus {
+      color: #dc2626;
     }
 
     .score {
@@ -168,11 +176,15 @@
     div.innerHTML = "";
 
     players.forEach((p, i) => {
+      const deltaClass =
+        p.delta?.startsWith("+") ? "plus" :
+        p.delta?.startsWith("-") ? "minus" : "";
+
       div.insertAdjacentHTML("beforeend", `
         <div class="player">
           <input value="${p.name}" onchange="changeName(${i}, this.value)">
           <div class="score-area">
-            <div class="delta">${p.delta ?? ""}</div>
+            <div class="delta ${deltaClass}">${p.delta ?? ""}</div>
             <div class="score">${p.score}</div>
           </div>
         </div>
