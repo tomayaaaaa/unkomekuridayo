@@ -390,7 +390,8 @@ function renderPlayers() {
         <input
           placeholder="プレイヤー ${i + 1}"
           value="${p.name}"
-          onchange="players[${i}].name=this.value">
+          oninput="players[${i}].name=this.value
+          updateSelects();">
         <div class="score-area">
           <div class="delta ${deltaClass}">${p.delta ?? ""}</div>
           <div class="score">${p.score}</div>
