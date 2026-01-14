@@ -207,6 +207,7 @@ input::placeholder {
 <div id="sideMenu" class="side-menu">
   <button onclick="rollDice()">🎲 ダイスロール（1個）</button>
   <button onclick="rollDice2()">🎲 ダイスロール（2個）</button>
+  <button onclick="rollDice3()">🎲 すんごいダイスロール</button>
 
   <div class="dice-history">
     <strong>🎲 履歴</strong>
@@ -237,13 +238,13 @@ input::placeholder {
     <strong>点数入力</strong>
 
     <div class="form-row">
-      <label>勝者</label>
-      <select id="winnerSelect"></select>
+      <label>敗者</label>
+      <select id="loserSelect"></select>
     </div>
 
     <div class="form-row">
-      <label>敗者</label>
-      <select id="loserSelect"></select>
+      <label>勝者</label>
+      <select id="winnerSelect"></select>
     </div>
 
     <div class="form-row">
@@ -337,6 +338,17 @@ function rollDice2() {
   showAlert(`🎲 ${r1} / ${r2}\n計: ${sum}\n倍率にセットしました`, [{ label: "OK" }]);
 }
 
+function rollDice3() {
+  s = 0;
+  const r = Math.floor(Math.random() * 2) + 1;
+  if(1 == r){s = 10;}
+  else{s = 20;}
+  multiplier.value = s;
+  addDiceHistory(`すご → ${s}`);
+  closeMenu();
+  showAlert(`🎲 出目: ${s}\n倍率にセットしました`, [{ label: "OK" }]);
+}
+
 /* ---------- プレイヤー ---------- */
 function confirmCreate() {
   showAlert(
@@ -399,6 +411,16 @@ function updateSelects() {
 
 /* ---------- スコア ---------- */
 function clearScores() {
+  showAlert(
+    "直前のうんめくデータは消去され、\n新しいうんめくを開始します。\nよろしいですか？",
+    [
+      { label: "いいえ" },
+      { label: "はい", action: clearexecute }
+    ]
+  );
+}
+
+function clearexecute(){
   players.forEach(p => { p.score = 0; p.delta = null; });
   renderPlayers();
 }
