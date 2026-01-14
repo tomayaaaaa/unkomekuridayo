@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flip-Flop Poop</title>
+
   <style>
     body {
       font-family: sans-serif;
@@ -17,6 +18,65 @@
       margin: 0 auto;
     }
 
+    /* ---------- 三点リーダ ---------- */
+    .menu-button {
+      position: fixed;
+      top: calc(8px + env(safe-area-inset-top));
+      right: calc(12px + env(safe-area-inset-right));
+      font-size: 24px;
+      padding: 8px 12px;
+      cursor: pointer;
+      user-select: none;
+      z-index: 1001;
+    }
+
+    /* ---------- サイドメニュー ---------- */
+    .side-menu {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 260px;
+      height: 100%;
+      background: #fff;
+      box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+      padding: calc(16px + env(safe-area-inset-top)) 16px 16px;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      z-index: 1000;
+    }
+
+    .side-menu.open {
+      transform: translateX(0);
+    }
+
+    .side-menu h3 {
+      margin-top: 0;
+    }
+
+    .side-menu button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-top: 8px;
+    }
+
+    /* ---------- オーバーレイ ---------- */
+    .menu-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.3);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
+      z-index: 999;
+    }
+
+    .menu-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ---------- 既存UI ---------- */
     .input-area {
       display: flex;
       gap: 8px;
@@ -60,13 +120,8 @@
       color: #999;
     }
 
-    .delta.plus {
-      color: #2563eb;
-    }
-
-    .delta.minus {
-      color: #dc2626;
-    }
+    .delta.plus { color: #2563eb; }
+    .delta.minus { color: #dc2626; }
 
     .score {
       font-weight: bold;
@@ -102,7 +157,20 @@
     }
   </style>
 </head>
+
 <body>
+
+<!-- 三点リーダ -->
+<div class="menu-button" onclick="toggleMenu()">⋮</div>
+
+<!-- サイドメニュー -->
+<div id="sideMenu" class="side-menu">
+  <h3>メニュー</h3>
+  <button onclick="rollDice()">🎲 ダイスロール(1個)</button>
+  <button onclick="rollDice2()">🎲 ダイスロール(2個)</button>
+</div>
+
+<div id="menuOverlay" class="menu-overlay" onclick="toggleMenu()"></div>
 
 <div class="container">
 
@@ -144,7 +212,7 @@
 
     <div class="checkbox-group">
       <label><input type="checkbox" id="revolution"> 革命</label>
-      <label><input type="checkbox" id="wild"> ワイルドカード有無</label>
+      <label><input type="checkbox" id="wild"> ワイルドカード</label>
     </div>
 
     <button type="button" onclick="applyScore()">反映</button>
@@ -156,6 +224,36 @@
 <script>
   let players = [];
   let history = null;
+
+  function toggleMenu() {
+    document.getElementById("sideMenu").classList.toggle("open");
+    document.getElementById("menuOverlay").classList.toggle("open");
+  }
+
+  function setMultiplier(value) {
+    const input = document.getElementById("multiplier");
+    input.value = value;
+    input.focus(); // iPhoneでも「反映された感」が出る
+    toggleMenu();
+  }
+
+  function rollDice() {
+    const r = Math.floor(Math.random() * 6) + 1;
+    setMultiplier(r);
+    alert("🎲 出目: " + r);
+  }
+
+    function rollDice2() {
+    const r1 = Math.floor(Math.random() * 6) + 1;
+    const r2 = Math.floor(Math.random() * 6) + 1;
+    const sum = r1 + r2;
+    setMultiplier(sum);
+    alert("🎲 出目: " + r1 +"\n🎲 出目: " + r2 + "\n🎲🎲計: " + (r1+r2));
+  }
+
+  function showRules() {
+    alert("ここにルール説明を表示してください");
+  }
 
   function createPlayers() {
     const count = parseInt(document.getElementById("playerCount").value, 10);
@@ -213,15 +311,15 @@
   function applyScore() {
     history = JSON.parse(JSON.stringify(players));
 
-    const w = +document.getElementById("winnerSelect").value;
-    const l = +document.getElementById("loserSelect").value;
+    const w = +winnerSelect.value;
+    const l = +loserSelect.value;
     if (w === l) return alert("勝者と敗者は別にしてください");
 
-    const m = +document.getElementById("multiplier").value;
-    const normal = +document.getElementById("normalCount").value;
-    const face = +document.getElementById("faceCount").value;
-    const revolution = document.getElementById("revolution").checked;
-    const wild = document.getElementById("wild").checked;
+    const m = +multiplier.value;
+    const normal = +normalCount.value;
+    const face = +faceCount.value;
+    const revolution = revolution.checked;
+    const wild = wild.checked;
 
     let point = normal * m * 100 + face * 2 * m * 100;
     if (revolution) point += 5 * m * 100;
@@ -236,8 +334,10 @@
 
   function undo() {
     if (!history) return alert("取り消せる操作がありません");
-    players = history; history = null;
-    renderPlayers(); updateSelects();
+    players = history;
+    history = null;
+    renderPlayers();
+    updateSelects();
   }
 </script>
 
