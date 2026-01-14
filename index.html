@@ -18,15 +18,18 @@
       margin: 0 auto;
     }
 
-    /* ---------- 三点リーダ ---------- */
+    /* ---------- 三点リーダ（右下） ---------- */
     .menu-button {
       position: fixed;
-      top: calc(8px + env(safe-area-inset-top));
-      right: calc(12px + env(safe-area-inset-right));
-      font-size: 24px;
-      padding: 8px 12px;
+      right: calc(16px + env(safe-area-inset-right));
+      bottom: calc(16px + env(safe-area-inset-bottom));
+      font-size: 28px;
+      padding: 10px 14px;
       cursor: pointer;
       user-select: none;
+      background: #fff;
+      border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
       z-index: 1001;
     }
 
@@ -35,7 +38,7 @@
       position: fixed;
       top: 0;
       left: 0;
-      width: 260px;
+      width: 280px;
       height: 100%;
       background: #fff;
       box-shadow: 2px 0 8px rgba(0,0,0,0.2);
@@ -43,14 +46,11 @@
       transform: translateX(-100%);
       transition: transform 0.25s ease;
       z-index: 1000;
+      overflow-y: auto;
     }
 
     .side-menu.open {
       transform: translateX(0);
-    }
-
-    .side-menu h3 {
-      margin-top: 0;
     }
 
     .side-menu button {
@@ -58,6 +58,16 @@
       padding: 12px;
       font-size: 16px;
       margin-top: 8px;
+    }
+
+    .dice-history {
+      margin-top: 16px;
+      font-size: 14px;
+    }
+
+    .dice-history div {
+      padding: 4px 0;
+      border-bottom: 1px solid #eee;
     }
 
     /* ---------- オーバーレイ ---------- */
@@ -74,6 +84,38 @@
     .menu-overlay.open {
       opacity: 1;
       pointer-events: auto;
+    }
+
+    /* ---------- カスタムアラート ---------- */
+    .custom-alert {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+    }
+
+    .custom-alert.show {
+      display: flex;
+    }
+
+    .alert-box {
+      background: #fff;
+      padding: 16px;
+      border-radius: 12px;
+      width: 80%;
+      max-width: 320px;
+      text-align: center;
+      white-space: pre-line;
+    }
+
+    .alert-box button {
+      margin-top: 12px;
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
     }
 
     /* ---------- 既存UI ---------- */
@@ -160,24 +202,33 @@
 
 <body>
 
-<!-- 三点リーダ -->
-<div class="menu-button" onclick="toggleMenu()">⋮</div>
+<div class="menu-button" onclick="toggleMenu()">🎲</div>
 
-<!-- サイドメニュー -->
 <div id="sideMenu" class="side-menu">
-  <h3>メニュー</h3>
-  <button onclick="rollDice()">🎲 ダイスロール(1個)</button>
-  <button onclick="rollDice2()">🎲 ダイスロール(2個)</button>
+  <button onclick="rollDice()">🎲 ダイスロール（1個）</button>
+  <button onclick="rollDice2()">🎲 ダイスロール（2個）</button>
+
+  <div class="dice-history">
+    <strong>🎲 履歴</strong>
+    <div id="diceHistory"></div>
+  </div>
 </div>
 
 <div id="menuOverlay" class="menu-overlay" onclick="toggleMenu()"></div>
+
+<div id="customAlert" class="custom-alert">
+  <div class="alert-box">
+    <div id="alertMessage"></div>
+    <button onclick="closeAlert()">OK</button>
+  </div>
+</div>
 
 <div class="container">
 
   <div class="input-area">
     <input type="number" id="playerCount" min="1" placeholder="人数">
-    <button type="button" onclick="createPlayers()">生成</button>
-    <button type="button" onclick="clearScores()">クリア</button>
+    <button onclick="createPlayers()">生成</button>
+    <button onclick="clearScores()">クリア</button>
   </div>
 
   <div id="players" class="players"></div>
@@ -215,49 +266,68 @@
       <label><input type="checkbox" id="wild"> ワイルドカード</label>
     </div>
 
-    <button type="button" onclick="applyScore()">反映</button>
-    <button type="button" onclick="undo()">取り消し</button>
+    <button onclick="applyScore()">反映</button>
+    <button onclick="undo()">取り消し</button>
   </div>
 
 </div>
 
 <script>
+  const sideMenu = document.getElementById("sideMenu");
+  const menuOverlay = document.getElementById("menuOverlay");
+  const customAlert = document.getElementById("customAlert");
+  const alertMessage = document.getElementById("alertMessage");
+  const playersDiv = document.getElementById("players");
+  const diceHistoryDiv = document.getElementById("diceHistory");
+
   let players = [];
   let history = null;
+  let diceHistory = [];
 
   function toggleMenu() {
-    document.getElementById("sideMenu").classList.toggle("open");
-    document.getElementById("menuOverlay").classList.toggle("open");
+    sideMenu.classList.toggle("open");
+    menuOverlay.classList.toggle("open");
   }
 
-  function setMultiplier(value) {
-    const input = document.getElementById("multiplier");
-    input.value = value;
-    input.focus(); // iPhoneでも「反映された感」が出る
+  function showAlert(msg) {
+    alertMessage.textContent = msg;
+    customAlert.classList.add("show");
+  }
+
+  function closeAlert() {
+    customAlert.classList.remove("show");
+  }
+
+  function addDiceHistory(text) {
+    diceHistory.unshift(text);
+    diceHistory = diceHistory.slice(0, 10);
+    diceHistoryDiv.innerHTML = diceHistory.map(h => `<div>${h}</div>`).join("");
+  }
+
+  function setMultiplier(v) {
+    multiplier.value = v;
     toggleMenu();
   }
 
   function rollDice() {
     const r = Math.floor(Math.random() * 6) + 1;
     setMultiplier(r);
-    alert("🎲 出目: " + r);
+    addDiceHistory(`1個 → ${r}`);
+    showAlert(`🎲 出目: ${r}\n倍率にセットしました`);
   }
 
-    function rollDice2() {
+  function rollDice2() {
     const r1 = Math.floor(Math.random() * 6) + 1;
     const r2 = Math.floor(Math.random() * 6) + 1;
     const sum = r1 + r2;
     setMultiplier(sum);
-    alert("🎲 出目: " + r1 +"\n🎲 出目: " + r2 + "\n🎲🎲計: " + (r1+r2));
-  }
-
-  function showRules() {
-    alert("ここにルール説明を表示してください");
+    addDiceHistory(`2個 → ${r1} + ${r2} = ${sum}`);
+    showAlert(`🎲 ${r1} / ${r2}\n🎲 計: ${sum}\n倍率にセットしました`);
   }
 
   function createPlayers() {
-    const count = parseInt(document.getElementById("playerCount").value, 10);
-    if (isNaN(count) || count <= 0) return alert("正しい人数を入力してください");
+    const count = +playerCount.value;
+    if (!count) return showAlert("正しい人数を入力してください");
 
     players = Array.from({ length: count }, (_, i) => ({
       name: `プレイヤー ${i + 1}`,
@@ -270,19 +340,16 @@
   }
 
   function renderPlayers() {
-    const div = document.getElementById("players");
-    div.innerHTML = "";
-
+    playersDiv.innerHTML = "";
     players.forEach((p, i) => {
-      const deltaClass =
-        p.delta?.startsWith("+") ? "plus" :
-        p.delta?.startsWith("-") ? "minus" : "";
-
-      div.insertAdjacentHTML("beforeend", `
+      playersDiv.insertAdjacentHTML("beforeend", `
         <div class="player">
-          <input value="${p.name}" onchange="changeName(${i}, this.value)">
+          <input value="${p.name}"
+            onchange="players[${i}].name=this.value||'プレイヤー ${i+1}';updateSelects()">
           <div class="score-area">
-            <div class="delta ${deltaClass}">${p.delta ?? ""}</div>
+            <div class="delta ${p.delta?.startsWith('+') ? 'plus' : p.delta?.startsWith('-') ? 'minus' : ''}">
+              ${p.delta ?? ""}
+            </div>
             <div class="score">${p.score}</div>
           </div>
         </div>
@@ -290,14 +357,8 @@
     });
   }
 
-  function changeName(i, v) {
-    players[i].name = v || `プレイヤー ${i + 1}`;
-    updateSelects();
-  }
-
   function updateSelects() {
-    ["winnerSelect", "loserSelect"].forEach(id => {
-      const sel = document.getElementById(id);
+    [winnerSelect, loserSelect].forEach(sel => {
       sel.innerHTML = "";
       players.forEach((p, i) => sel.add(new Option(p.name, i)));
     });
@@ -313,27 +374,26 @@
 
     const w = +winnerSelect.value;
     const l = +loserSelect.value;
-    if (w === l) return alert("勝者と敗者は別にしてください");
+    if (w === l) return showAlert("勝者と敗者は別にしてください");
 
     const m = +multiplier.value;
-    const normal = +normalCount.value;
-    const face = +faceCount.value;
-    const revolution = revolution.checked;
-    const wild = wild.checked;
-
-    let point = normal * m * 100 + face * 2 * m * 100;
-    if (revolution) point += 5 * m * 100;
-    if (wild) point += 3 * m * 100;
+    let point =
+      normalCount.value * m * 100 +
+      faceCount.value * 2 * m * 100 +
+      (revolution.checked ? 5 * m * 100 : 0) +
+      (wild.checked ? 3 * m * 100 : 0);
 
     players.forEach(p => p.delta = null);
-    players[w].score += point; players[w].delta = `+${point}`;
-    players[l].score -= point; players[l].delta = `-${point}`;
+    players[w].score += point;
+    players[w].delta = `+${point}`;
+    players[l].score -= point;
+    players[l].delta = `-${point}`;
 
     renderPlayers();
   }
 
   function undo() {
-    if (!history) return alert("取り消せる操作がありません");
+    if (!history) return showAlert("取り消せる操作がありません");
     players = history;
     history = null;
     renderPlayers();
